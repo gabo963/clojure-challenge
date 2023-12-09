@@ -83,9 +83,11 @@
 (defn dateConversion [invoice]
   (def fecha (clojure.string/split (:invoice/issue_date invoice) #"/"))
   (assoc (clojure.set/rename-keys invoice {:invoice/issue_date :invoice/issue-date}) :invoice/issue-date (clojure.instant/read-instant-date (str (get fecha 2) "-" (get fecha 1) "-" (get fecha 0))))
-
   )
 
+; The result of the following function validates vs the invoice Spec!
+;(s/valid? ::invoice invoice)
+;=> true
 (defn run [filename]
   (->> filename
        invoiceCreator
@@ -93,3 +95,4 @@
        customerConversion
        dateConversion)
   )
+
