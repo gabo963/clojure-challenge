@@ -28,3 +28,6 @@
        ))
 
 ;; PROBLEM 2
+
+(defn invoiceCreator [filename]
+  filename)
