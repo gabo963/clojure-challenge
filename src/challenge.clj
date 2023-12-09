@@ -32,34 +32,34 @@
 
 ;; PROBLEM 2
 
-(defn renamer [value]
-  (clojure.string/replace (first value) #"^:invoice/" "")
+(defn renamer [key]
+  (clojure.string/replace-first key #":\w+\/(\w+)" "$1")
   )
 
-(defn worksMaps [invoice]
-  (into {} (map (fn [value]
-                  (if (map? (second value))
-                    [(first value) (update-keys (second value) #( keyword (str (renamer value) "/" (name %)) ))]
-                    value)
-                  ) invoice))
+(defn worksMaps [value]
+    [(first value) (update-keys (second value) #( keyword (str (renamer (first value) ) "/" (name %)) ))]
   )
 
-(defn worksVec [invoice]
-  (into {} (map (fn [value]
-                  (if (vector? (second value))
-                    (map (fn [value] (println value)) (second value))
-                    value)
-                  ) invoice))
+(defn worksVec [value]
+  (conj [(first value)] (into [] (map (fn [valor] (update-keys valor #(keyword (str (renamer (first value)) "/" (name %))))) (second value))))
   )
-
 (defn invoiceCreator [filename]
   (update-keys
     (get (json/read-str (slurp "invoice.json") :key-fn keyword ) :invoice)
     #( keyword (str "invoice/" (name %)) ))
   )
 
-(defn produceJsonInvoice [filename]
-  (worksVec (worksMaps (invoiceCreator filename))))
+(defn produceJsonInvoice [mapa]
+  (into {} (map (fn [value]
+                  (if (map? (second value))
+                    (worksMaps value)
+                    (if (vector? (second value))
+                      (worksVec value)
+                      value))) mapa))
+  )
+
+(defn run [filename]
+  (produceJsonInvoice (invoiceCreator filename)))
 
 
 
