@@ -32,7 +32,20 @@
 
 ;; PROBLEM 2
 
-(defn invoiceCreator [filename]
-  (json/read-str (slurp filename) :key-fn keyword))
 
-(def invoice )
+
+(defn worksMaps [invoice]
+  (into {} (map (fn [value]
+                  (if (map? (second value))
+                    [(first value) (update-keys (second value) #( keyword (str (clojure.string/replace (first value) #"^:invoice/" "") "/" (name %)) ))]
+                    value)
+                  ) invoice))
+  )
+
+(defn invoiceCreator [filename]
+  (update-keys
+    (get (json/read-str (slurp "invoice.json") :key-fn keyword ) :invoice)
+    #( keyword (str "invoice/" (name %)) ))
+  )
+
+
