@@ -33,15 +33,30 @@
 ;; PROBLEM 2
 
 (defn renamer [key]
-  (clojure.string/replace-first key #":\w+\/(\w+)" "$1")
+  (println key)
+  (if (= "items" (clojure.string/replace-first key #":\w+\/(\w+)" "$1"))
+    "invoice-item"
+    (if (= ":invoice-item/taxes" key)
+      "tax"
+      (clojure.string/replace-first key #":\w+\/(\w+)" "$1")))
   )
 
 (defn worksMaps [value]
     [(first value) (update-keys (second value) #( keyword (str (renamer (first value) ) "/" (name %)) ))]
   )
 
+(defn worksVec-copy [value]
+  [(first value) (into [] (map (fn [valor]
+                                 (update-keys valor #(keyword (str (renamer "tax") "/" (name %)))))
+                               (second value)))]
+  )
 (defn worksVec [value]
-  (conj [(first value)] (into [] (map (fn [valor] (update-keys valor #(keyword (str (renamer (first value)) "/" (name %))))) (second value))))
+  [(first value) (into [] (map (fn [valor]
+                                 (into {} (map (fn [val] (if (vector? (second val))
+                                                           (or (println val) (worksVec-save val))
+                                                           val))
+                                               (update-keys valor #(keyword (str (renamer (first value)) "/" (name %)))))) )
+                               (second value)))]
   )
 (defn invoiceCreator [filename]
   (update-keys
@@ -52,7 +67,7 @@
 (defn produceJsonInvoice [mapa]
   (into {} (map (fn [value]
                   (if (map? (second value))
-                    (worksMaps value)
+                    [(first value) (produceJsonInvoice ((first value) (into {} [(worksMaps value)])))]
                     (if (vector? (second value))
                       (worksVec value)
                       value))) mapa))
@@ -60,6 +75,27 @@
 
 (defn run [filename]
   (produceJsonInvoice (invoiceCreator filename)))
+
+(defn produceJsonInvoice-recur [mapa]
+  (into {} (map (fn [value]
+                  (if (map? (second value))
+                    [(first value) (produceJsonInvoice-recur ((first value) (into {} [(worksMaps value)])))]
+                    (if (vector? (second value))
+                      (worksVec value)
+                      value))) mapa))
+  )
+
+(defn produceJsonInvoice-save [mapa]
+  (into {} (map (fn [value]
+                  (if (map? (second value))
+                    [(first value) (produceJsonInvoice-save ((first value) (into {} [(worksMaps value)])))]
+                    (if (vector? (second value))
+                      [(first (worksVec value)) (into [] (map (fn [valor] (produceJsonInvoice-save valor)) (second (worksVec value))))]
+                      value))) mapa))
+  )
+
+; save
+
 
 
 
