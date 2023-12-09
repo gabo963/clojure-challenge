@@ -33,7 +33,6 @@
 ;; PROBLEM 2
 
 (defn renamer [key]
-  (println key)
   (if (= "items" (clojure.string/replace-first key #":\w+\/(\w+)" "$1"))
     "invoice-item"
     (if (= ":invoice-item/taxes" key)
@@ -45,7 +44,7 @@
     [(first value) (update-keys (second value) #( keyword (str (renamer (first value) ) "/" (name %)) ))]
   )
 
-(defn worksVec-copy [value]
+(defn worksVec-save [value]
   [(first value) (into [] (map (fn [valor]
                                  (update-keys valor #(keyword (str (renamer "tax") "/" (name %)))))
                                (second value)))]
@@ -53,7 +52,7 @@
 (defn worksVec [value]
   [(first value) (into [] (map (fn [valor]
                                  (into {} (map (fn [val] (if (vector? (second val))
-                                                           (or (println val) (worksVec-save val))
+                                                           (worksVec-save val)
                                                            val))
                                                (update-keys valor #(keyword (str (renamer (first value)) "/" (name %)))))) )
                                (second value)))]
@@ -84,18 +83,3 @@
                       (worksVec value)
                       value))) mapa))
   )
-
-(defn produceJsonInvoice-save [mapa]
-  (into {} (map (fn [value]
-                  (if (map? (second value))
-                    [(first value) (produceJsonInvoice-save ((first value) (into {} [(worksMaps value)])))]
-                    (if (vector? (second value))
-                      [(first (worksVec value)) (into [] (map (fn [valor] (produceJsonInvoice-save valor)) (second (worksVec value))))]
-                      value))) mapa))
-  )
-
-; save
-
-
-
-
