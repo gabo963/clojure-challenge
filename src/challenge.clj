@@ -1,6 +1,9 @@
-(ns challenge)
+(ns challenge
+  (:require [clojure.data.json :as json])
+  )
+
 ;; PROBLEM 1
-(def invoice (clojure.edn/read-string (slurp "invoice.edn")))
+(def edn-invoice (clojure.edn/read-string (slurp "invoice.edn")))
 
 (defn check-tax
   [tax-set category percentage keys]
@@ -30,4 +33,6 @@
 ;; PROBLEM 2
 
 (defn invoiceCreator [filename]
-  filename)
+  (json/read-str (slurp filename) :key-fn keyword))
+
+(def invoice )
