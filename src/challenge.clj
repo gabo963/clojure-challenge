@@ -35,18 +35,22 @@
 (defn renamer [key]
   (if (= "items" (clojure.string/replace-first key #":\w+\/(\w+)" "$1"))
     "invoice-item"
-    (if (= ":invoice-item/taxes" key)
-      "tax"
-      (clojure.string/replace-first key #":\w+\/(\w+)" "$1")))
+    (clojure.string/replace-first key #":\w+\/(\w+)" "$1"))
   )
 
 (defn worksMaps [value]
     [(first value) (update-keys (second value) #( keyword (str (renamer (first value) ) "/" (name %)) ))]
   )
 
+(defn updateTaxVals [map]
+  (update-vals map #(if (string? %)
+                      :iva
+                      (double %)))
+  )
+
 (defn worksVec-save [value]
   [(first value) (into [] (map (fn [valor]
-                                 (update-keys valor #(keyword (str (renamer "tax") "/" (name %)))))
+                                 (update-keys (updateTaxVals valor)  #(keyword (clojure.string/replace (name %) #"_" "/"))))
                                (second value)))]
   )
 (defn worksVec [value]
@@ -72,14 +76,18 @@
                       value))) mapa))
   )
 
-(defn run [filename]
-  (produceJsonInvoice (invoiceCreator filename)))
+(defn customerConversion [invoice]
+  (assoc invoice :invoice/customer (clojure.set/rename-keys (:invoice/customer invoice) {:customer/company_name :customer/name, :customer/email :customer/email}))
+  )
 
-(defn produceJsonInvoice-recur [mapa]
-  (into {} (map (fn [value]
-                  (if (map? (second value))
-                    [(first value) (produceJsonInvoice-recur ((first value) (into {} [(worksMaps value)])))]
-                    (if (vector? (second value))
-                      (worksVec value)
-                      value))) mapa))
+(defn dateConversion [invoice]
+  (clojure.set/rename-keys invoice {:invoice/issue_date :invoice/issue-date})
+  )
+
+(defn run [filename]
+  (->> filename
+       invoiceCreator
+       produceJsonInvoice
+       customerConversion
+       dateConversion)
   )
