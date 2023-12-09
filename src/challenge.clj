@@ -1,12 +1,6 @@
 (ns challenge)
-
+;; PARTE 1
 (def invoice (clojure.edn/read-string (slurp "invoice.edn")))
-
-(defn invoice-filter-Last
-  [invoice]
-  (->> invoice
-       (:invoice/items)
-       ))
 
 (defn check-tax
   [tax-set category percentage keys]
@@ -21,10 +15,11 @@
 
 (defn invoice-filter
   [invoice]
-  (reduce (fn [items item]
-            (if (xor (check-tax (:taxable/taxes item) :iva 19 [:tax/category :tax/rate]) (check-tax (:retentionable/retentions item) :ret_fuente 1 [:retention/category :retention/rate]) )
-              (conj items item)
-              items))
-          []
-          (:invoice/items invoice)
-          ))
+  (->> invoice
+       (:invoice/items)
+       (reduce (fn [items item]
+                 (if (xor (check-tax (:taxable/taxes item) :iva 19 [:tax/category :tax/rate]) (check-tax (:retentionable/retentions item) :ret_fuente 1 [:retention/category :retention/rate]) )
+                   (conj items item)
+                   items))
+               [])
+       ))
