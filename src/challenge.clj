@@ -32,12 +32,22 @@
 
 ;; PROBLEM 2
 
-
+(defn renamer [value]
+  (clojure.string/replace (first value) #"^:invoice/" "")
+  )
 
 (defn worksMaps [invoice]
   (into {} (map (fn [value]
                   (if (map? (second value))
-                    [(first value) (update-keys (second value) #( keyword (str (clojure.string/replace (first value) #"^:invoice/" "") "/" (name %)) ))]
+                    [(first value) (update-keys (second value) #( keyword (str (renamer value) "/" (name %)) ))]
+                    value)
+                  ) invoice))
+  )
+
+(defn worksVec [invoice]
+  (into {} (map (fn [value]
+                  (if (vector? (second value))
+                    (map (fn [value] (println value)) (second value))
                     value)
                   ) invoice))
   )
@@ -47,5 +57,9 @@
     (get (json/read-str (slurp "invoice.json") :key-fn keyword ) :invoice)
     #( keyword (str "invoice/" (name %)) ))
   )
+
+(defn produceJsonInvoice [filename]
+  (worksVec (worksMaps (invoiceCreator filename))))
+
 
 
