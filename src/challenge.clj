@@ -1,5 +1,5 @@
 (ns challenge)
-;; PARTE 1
+;; PROBLEM 1
 (def invoice (clojure.edn/read-string (slurp "invoice.edn")))
 
 (defn check-tax
@@ -18,8 +18,13 @@
   (->> invoice
        (:invoice/items)
        (reduce (fn [items item]
-                 (if (xor (check-tax (:taxable/taxes item) :iva 19 [:tax/category :tax/rate]) (check-tax (:retentionable/retentions item) :ret_fuente 1 [:retention/category :retention/rate]) )
+                 (if (xor
+                       (check-tax (:taxable/taxes item) :iva 19 [:tax/category :tax/rate])
+                       (check-tax (:retentionable/retentions item) :ret_fuente 1 [:retention/category :retention/rate])
+                     )
                    (conj items item)
                    items))
                [])
        ))
+
+;; PROBLEM 2
