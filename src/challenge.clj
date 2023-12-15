@@ -16,18 +16,27 @@
     (or cond1 cond2)
     ))
 
+(defn tax-checker
+  [items item]
+  (if (xor
+        (check-tax (:taxable/taxes item) :iva 19 [:tax/category :tax/rate])
+        (check-tax (:retentionable/retentions item) :ret_fuente 1 [:retention/category :retention/rate])
+        )
+    (conj items item)
+    items))
+
+(defn condition-reducer
+  [invoice-items]
+  (reduce tax-checker
+          []
+          invoice-items)
+  )
+
 (defn invoice-filter
   [invoice]
   (->> invoice
-       (:invoice/items)
-       (reduce (fn [items item]
-                 (if (xor
-                       (check-tax (:taxable/taxes item) :iva 19 [:tax/category :tax/rate])
-                       (check-tax (:retentionable/retentions item) :ret_fuente 1 [:retention/category :retention/rate])
-                     )
-                   (conj items item)
-                   items))
-               [])
+       :invoice/items
+       condition-reducer
        ))
 
 ;; PROBLEM 2
