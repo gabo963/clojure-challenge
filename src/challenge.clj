@@ -78,13 +78,14 @@
   )
 
 (defn produceJsonInvoice [mapa]
-  (into {} (map (fn [value]
-                  (println value)
-                  (if (map? (second value))
-                    [(first value) (produceJsonInvoice ((first value) (into {} [(worksMaps value)])))]
-                    (if (vector? (second value))
-                      (worksVec value)
-                      value))) mapa))
+  (into {}
+        (map (fn [[k v] ]
+                  (println [k v] )
+                  (if (map? v)
+                    [k (produceJsonInvoice (k (into {} [(worksMaps [k v] )])))]
+                    (if (vector? v)
+                      (worksVec [k v] )
+                      [k v] ))) mapa))
   )
 
 (defn customerConversion [invoice]
