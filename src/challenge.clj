@@ -41,6 +41,12 @@
 
 ;; PROBLEM 2
 
+(defn invoiceCreator [filename]
+  (update-keys
+    (get (json/read-str (slurp "invoice.json") :key-fn keyword ) :invoice)
+    #( keyword (str "invoice/" (name %)) ))
+  )
+
 (defn renamer [key]
   (if (= "items" (clojure.string/replace-first key #":\w+\/(\w+)" "$1"))
     "invoice-item"
@@ -70,11 +76,6 @@
                                                (update-keys valor #(keyword (str (renamer (first value)) "/" (name %)))))) )
                                (second value)))]
   )
-(defn invoiceCreator [filename]
-  (update-keys
-    (get (json/read-str (slurp "invoice.json") :key-fn keyword ) :invoice)
-    #( keyword (str "invoice/" (name %)) ))
-  )
 
 (defn produceJsonInvoice [mapa]
   (into {} (map (fn [value]
@@ -86,12 +87,16 @@
   )
 
 (defn customerConversion [invoice]
-  (assoc invoice :invoice/customer (clojure.set/rename-keys (:invoice/customer invoice) {:customer/company_name :customer/name, :customer/email :customer/email}))
+  (assoc invoice :invoice/customer
+                 (clojure.set/rename-keys (:invoice/customer invoice)
+                                          {:customer/company_name :customer/name, :customer/email :customer/email}))
   )
 
 (defn dateConversion [invoice]
   (def fecha (clojure.string/split (:invoice/issue_date invoice) #"/"))
-  (assoc (clojure.set/rename-keys invoice {:invoice/issue_date :invoice/issue-date}) :invoice/issue-date (clojure.instant/read-instant-date (str (get fecha 2) "-" (get fecha 1) "-" (get fecha 0))))
+  (assoc (clojure.set/rename-keys invoice {:invoice/issue_date :invoice/issue-date})
+    :invoice/issue-date
+    (clojure.instant/read-instant-date (str (get fecha 2) "-" (get fecha 1) "-" (get fecha 0))))
   )
 
 ; The result of the following function validates vs the invoice Spec!
