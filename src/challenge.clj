@@ -79,6 +79,7 @@
 
 (defn produceJsonInvoice [mapa]
   (into {} (map (fn [value]
+                  (println value)
                   (if (map? (second value))
                     [(first value) (produceJsonInvoice ((first value) (into {} [(worksMaps value)])))]
                     (if (vector? (second value))
@@ -92,11 +93,11 @@
                                           {:customer/company_name :customer/name, :customer/email :customer/email}))
   )
 
-(defn dateConversion [invoice]
-  (def fecha (clojure.string/split (:invoice/issue_date invoice) #"/"))
-  (assoc (clojure.set/rename-keys invoice {:invoice/issue_date :invoice/issue-date})
-    :invoice/issue-date
-    (clojure.instant/read-instant-date (str (get fecha 2) "-" (get fecha 1) "-" (get fecha 0))))
+(defn date-conversion [invoice]
+  (let [fecha (clojure.string/split (:invoice/issue_date invoice) #"/")]
+    (assoc (clojure.set/rename-keys invoice {:invoice/issue_date :invoice/issue-date})
+      :invoice/issue-date
+      (clojure.instant/read-instant-date (str (get fecha 2) "-" (get fecha 1) "-" (get fecha 0)))))
   )
 
 ; The result of the following function validates vs the invoice Spec!
