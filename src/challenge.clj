@@ -5,10 +5,12 @@
 ;; PROBLEM 1
 (def edn-invoice (clojure.edn/read-string (slurp "invoice.edn")))
 
+;Checks if the given item matches the given parameters.
 (defn check-tax
   [tax-set category percentage keys]
   (not-empty (filter #(and (= category ((first keys) %)) (= percentage ((second keys) %)) ) tax-set)) )
 
+;xor function to handle the condition where both tax types may match
 (defn xor
   [cond1 cond2]
   (if (and cond1 cond2)
@@ -16,6 +18,7 @@
     (or cond1 cond2)
     ))
 
+;Function to review item by item iterating and adding to the items
 (defn tax-checker
   [items item]
   (if (xor
@@ -25,6 +28,7 @@
     (conj items item)
     items))
 
+;Reducer to pass through all items and reduce to the ones that pass the conditions.
 (defn condition-reducer
   [invoice-items]
   (reduce tax-checker
@@ -32,6 +36,7 @@
           invoice-items)
   )
 
+;Invoice filter prompt: gets the items and processes them.
 (defn invoice-filter
   [invoice]
   (->> invoice
@@ -41,46 +46,54 @@
 
 ;; PROBLEM 2
 
+;Creates a map from the json passed as filename, includes the additional "invoice/" to the keywords.
 (defn invoiceCreator [filename]
   (update-keys
     (get (json/read-str (slurp "invoice.json") :key-fn keyword ) :invoice)
     #( keyword (str "invoice/" (name %)) ))
   )
 
+;removes the first section of the key for items, e.g removes the "invoice/" from "invoice/customer"
 (defn renamer [key]
   (if (= "items" (clojure.string/replace-first key #":\w+\/(\w+)" "$1"))
     "invoice-item"
     (clojure.string/replace-first key #":\w+\/(\w+)" "$1"))
   )
 
-(defn worksMaps [value]
-    [(first value) (update-keys (second value) #( keyword (str (renamer (first value) ) "/" (name %)) ))]
+;adjusts the name of maps based on the key.
+(defn worksMaps [[k v]]
+    [k (update-keys v #( keyword (str (renamer k ) "/" (name %)) ))]
   )
 
+;parses the tax values to their correct values.
 (defn updateTaxVals [map]
   (update-vals map #(if (string? %)
                       :iva
                       (double %)))
   )
 
-(defn worksVec-save [value]
-  [(first value) (into [] (map (fn [valor]
-                                 (update-keys (updateTaxVals valor)  #(keyword (clojure.string/replace (name %) #"_" "/"))))
-                               (second value)))]
-  )
-(defn worksVec [value]
-  [(first value) (into [] (map (fn [valor]
-                                 (into {} (map (fn [val] (if (vector? (second val))
-                                                           (worksVec-save val)
-                                                           val))
-                                               (update-keys valor #(keyword (str (renamer (first value)) "/" (name %)))))) )
-                               (second value)))]
+; adjusts the tax vector to conform to the appropiate format.
+(defn taxesVector [[k v]]
+  [k (into [] (map (fn
+                     [valor]
+                     (update-keys (updateTaxVals valor)  #(keyword (clojure.string/replace (name %) #"_" "/"))))
+                               v))]
   )
 
+; adjusts standard vectors so that these conform to the appropiate format
+(defn worksVec [[k v]]
+  [k (into [] (map (fn [valor]
+                                 (into {} (map (fn [val] (if (vector? (second val))
+                                                           (taxesVector val)
+                                                           val))
+                                               (update-keys valor #(keyword (str (renamer k) "/" (name %)))))) )
+                               v))]
+  )
+
+; runs the map through the adjustment functions.
 (defn produceJsonInvoice [mapa]
   (into {}
         (map (fn [[k v] ]
-                  (println [k v] )
                   (if (map? v)
                     [k (produceJsonInvoice (k (into {} [(worksMaps [k v] )])))]
                     (if (vector? v)
@@ -88,12 +101,14 @@
                       [k v] ))) mapa))
   )
 
+; Adjusts the customer section to the appropiate key names
 (defn customerConversion [invoice]
   (assoc invoice :invoice/customer
                  (clojure.set/rename-keys (:invoice/customer invoice)
                                           {:customer/company_name :customer/name, :customer/email :customer/email}))
   )
 
+;parses the date to the appropiate format (instant Clojure)
 (defn date-conversion [invoice]
   (let [fecha (clojure.string/split (:invoice/issue_date invoice) #"/")]
     (assoc (clojure.set/rename-keys invoice {:invoice/issue_date :invoice/issue-date})
@@ -109,5 +124,5 @@
        invoiceCreator
        produceJsonInvoice
        customerConversion
-       dateConversion)
+       date-conversion)
   )
